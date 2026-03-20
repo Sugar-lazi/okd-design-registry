@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKD Design Registry</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a26;--bg4:#222230;
+  --border:#252535;--border2:#2e2e40;
+  --text:#e8e8f0;--text2:#9898a8;--text3:#5a5a6e;
+  --blue:#4e8ef7;--green:#34c759;--orange:#ff9f0a;--red:#ff453a;--purple:#bf5af2;--yellow:#ffd60a;--cyan:#64d2ff;
+  --font:'DM Sans',-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+.header{position:sticky;top:0;z-index:100;padding:12px 24px;background:rgba(10,10,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.h-left{display:flex;align-items:center;gap:10px;}
+.logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#4e8ef7,#bf5af2);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;}
+.header h1{font-size:15px;font-weight:700;}
+.header h1 span{color:var(--text3);font-weight:400;font-size:11px;margin-left:6px;}
+.h-right{display:flex;gap:6px;}
+.hb{padding:6px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:10px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .12s;}
+.hb:hover{border-color:#444;color:var(--text);}
+.hb.pr{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+.stats{display:flex;gap:8px;padding:12px 24px;overflow-x:auto;}
+.st{padding:10px 14px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);min-width:90px;flex-shrink:0;}
+.st-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+.st-v{font-size:22px;font-weight:700;letter-spacing:-1px;margin-top:1px;color:var(--text);}
+
+/* Overview — number grid */
+.overview{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:4px 24px 8px;}
+.ov-card{padding:10px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);cursor:pointer;transition:all .12s;}
+.ov-card:hover{border-color:var(--border2);background:var(--bg3);}
+.ov-hd{display:flex;align-items:center;gap:5px;margin-bottom:8px;}
+.ov-hd .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.ov-hd .nm{font-size:10px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.ov-num{font-size:20px;font-weight:700;color:var(--text);font-family:var(--mono);letter-spacing:-1px;margin-bottom:4px;}
+.ov-num span{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0;margin-left:2px;}
+.ov-row2{display:flex;gap:8px;font-size:9px;color:var(--text3);}
+.ov-row2 b{font-weight:600;color:var(--text2);}
+
+.toolbar{padding:8px 24px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.search{width:100%;padding:8px 12px 8px 32px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:12px;font-family:var(--font);outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235a5a6e' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
+.search:focus{border-color:var(--blue);}
+.search::placeholder{color:var(--text3);}
+.search-wrap{position:relative;flex:1;min-width:200px;}
+.search-dd{display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 12px 32px rgba(0,0,0,.6);}
+.search-dd.show{display:block;}
+.search-dd::-webkit-scrollbar{width:4px;}
+.search-dd::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sdd-header{padding:6px 12px;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;}
+.sdd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background .1s;text-decoration:none;color:inherit;border-bottom:1px solid rgba(255,255,255,.02);}
+.sdd-item:last-child{border-bottom:none;}
+.sdd-item:hover{background:var(--bg3);}
+.sdd-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sdd-info{flex:1;min-width:0;}
+.sdd-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sdd-name mark{background:rgba(78,142,247,.25);color:var(--blue);border-radius:2px;padding:0 1px;}
+.sdd-meta{font-size:9px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sdd-meta b{color:var(--text2);font-weight:500;}
+.sdd-badge{padding:2px 5px;border-radius:3px;font-size:7px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.sdd-badge.WIP{color:var(--orange);background:rgba(255,159,10,.1);}
+.sdd-badge.Review{color:var(--blue);background:rgba(78,142,247,.1);}
+.sdd-badge.Final{color:var(--green);background:rgba(52,199,89,.1);}
+.sdd-badge.Archived{color:var(--text3);background:rgba(90,90,110,.06);}
+.sdd-empty{padding:16px 12px;text-align:center;font-size:11px;color:var(--text3);}
+.sdd-footer{padding:6px 12px;font-size:9px;color:var(--text3);text-align:center;border-top:1px solid var(--border);cursor:pointer;}
+.sdd-footer:hover{color:var(--blue);}
+.chip{padding:4px 9px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:9px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .12s;}
+.chip:hover{border-color:#444;}
+.chip.on{border-color:var(--blue);color:var(--blue);background:rgba(78,142,247,.08);}
+
+.content{padding:4px 24px 24px;}
+
+/* Product cards grid */
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:16px;}
+.prod-card{border-radius:10px;background:var(--bg2);border:1px solid var(--border);overflow:hidden;transition:border-color .15s;}
+.prod-card:hover{border-color:var(--border2);}
+.prod-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+.prod-dot{width:12px;height:12px;border-radius:50%;}
+.prod-name{font-size:15px;font-weight:700;flex:1;}
+.prod-stats{display:flex;gap:10px;font-size:10px;color:var(--text3);}
+.prod-stats b{font-weight:600;}
+
+/* Mind-map tree */
+.tree{padding:14px 4px 14px 18px;}
+
+/* Module node */
+.mod-node{position:relative;padding-left:22px;margin-bottom:12px;}
+.mod-node::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--border);}
+.mod-node:last-child::before{height:18px;}
+
+.mod-label{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;user-select:none;position:relative;}
+.mod-label::before{content:'';position:absolute;left:-22px;top:50%;width:20px;height:2px;background:var(--border);}
+.mod-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.mod-name{font-size:13px;font-weight:600;}
+.mod-expand{font-size:9px;color:var(--text3);transition:transform .2s;margin-left:2px;}
+.mod-expand.open{transform:rotate(90deg);}
+.mod-count{font-size:9px;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:6px;}
+
+/* Sub-project branches */
+.plat-branches{padding-left:24px;overflow:hidden;transition:max-height .25s ease;}
+.plat-branch{position:relative;padding-left:18px;display:flex;align-items:center;gap:0;min-height:44px;margin-bottom:4px;}
+.plat-branch::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--border);}
+.plat-branch:last-child::before{height:22px;}
+.plat-branch::after{content:'';position:absolute;left:0;top:20px;width:16px;height:2px;background:var(--border);}
+
+.plat-tag{flex-shrink:0;min-width:120px;max-width:150px;font-size:11px;font-weight:600;color:var(--text2);padding:4px 0;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:6px;}
+.plat-icon{font-size:11px;}
+
+/* Connector between tag and pills */
+.plat-conn{width:16px;height:2px;background:var(--border);flex-shrink:0;margin-right:2px;}
+
+/* Version pills in branch */
+.ver-row{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;padding:4px 0;}
+.ver-row::-webkit-scrollbar{height:0;}
+
+.ver-item{display:flex;align-items:center;flex-shrink:0;}
+.ver-conn{width:20px;height:2px;background:var(--border);}
+.ver-item:first-child .ver-conn{display:none;}
+
+/* Compact old version */
+.ver-mini{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:5px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .12s;position:relative;text-decoration:none;color:inherit;opacity:.5;}
+.ver-mini:hover{opacity:1;background:var(--bg4);border-color:#3a3a4a;transform:translateY(-1px);}
+.ver-mini .vd{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.ver-mini .vv{font-size:9px;font-family:var(--mono);color:var(--text3);}
+
+/* Collapsed "+N" badge */
+.ver-more{padding:4px 10px;border-radius:5px;background:var(--bg4);border:1px dashed var(--border);color:var(--text3);font-size:10px;font-weight:600;font-family:var(--mono);cursor:pointer;transition:all .15s;user-select:none;white-space:nowrap;}
+.ver-more:hover{border-color:var(--blue);color:var(--blue);background:rgba(78,142,247,.06);}
+.ver-more.expanded{border-style:solid;background:rgba(78,142,247,.06);color:var(--blue);border-color:var(--blue);}
+
+/* Hidden old versions container */
+.ver-hidden{display:none;align-items:center;gap:0;}
+.ver-hidden.show{display:flex;}
+
+/* Latest version - full pill */
+.ver-latest{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .12s;position:relative;text-decoration:none;color:inherit;}
+.ver-latest:hover{background:var(--bg4);border-color:#3a3a4a;transform:translateY(-1px);}
+.ver-latest.s-WIP{border-color:rgba(255,159,10,.25);}
+.ver-latest.s-Review{border-color:rgba(78,142,247,.25);}
+.ver-latest.s-Final{border-color:rgba(52,199,89,.25);}
+
+.vd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.vd.WIP{background:var(--orange);box-shadow:0 0 5px rgba(255,159,10,.4);}
+.vd.Review{background:var(--blue);box-shadow:0 0 4px rgba(78,142,247,.3);}
+.vd.Final{background:var(--green);box-shadow:0 0 5px rgba(52,199,89,.4);}
+.vd.Archived{background:var(--text3);}
+
+.vv{font-size:10px;font-weight:600;font-family:var(--mono);color:var(--text);}
+.vs{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.2px;padding:2px 4px;border-radius:3px;}
+.vs.WIP{color:var(--orange);background:rgba(255,159,10,.1);}
+.vs.Review{color:var(--blue);background:rgba(78,142,247,.1);}
+.vs.Final{color:var(--green);background:rgba(52,199,89,.1);}
+.vs.Archived{color:var(--text3);background:rgba(90,90,110,.06);}
+.vo{font-size:9px;color:var(--text2);border-left:1px solid var(--border);padding-left:6px;margin-left:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Tooltip */
+.vt{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;min-width:200px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.6);}
+.ver-latest:hover .vt,.ver-mini:hover .vt{display:block;}
+.vt::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--border2);}
+.vt-n{font-size:12px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;}
+.vt-m{font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:2px;}
+.vt-m b{color:var(--text2);}
+.vt-h{margin-top:5px;font-size:9px;color:var(--blue);font-weight:500;}
+
+/* View bar */
+.view-bar{padding:10px 24px 0;display:flex;gap:0;}
+.vtab{padding:7px 14px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.vtab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.vtab:hover:not(.active){color:var(--text2);}
+
+/* Table */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{padding:7px 10px;text-align:left;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.02);}
+tr:hover td{background:var(--bg2);}
+.tn{font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tl{color:var(--blue);text-decoration:none;font-size:10px;}
+.tl:hover{text-decoration:underline;}
+.tb{padding:2px 5px;border-radius:3px;font-size:8px;font-weight:700;text-transform:uppercase;}
+.tb.WIP{color:var(--orange);background:rgba(255,159,10,.1);}
+.tb.Review{color:var(--blue);background:rgba(78,142,247,.1);}
+.tb.Final{color:var(--green);background:rgba(52,199,89,.1);}
+.tb.Archived{color:var(--text3);background:rgba(90,90,110,.06);}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text3);}
+
+.modal-bg{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;width:360px;max-width:90vw;}
+.modal h2{font-size:13px;margin-bottom:8px;}
+.modal input{width:100%;padding:8px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:11px;font-family:var(--mono);outline:none;margin-bottom:8px;}
+.modal input:focus{border-color:var(--blue);}
+.modal-b{display:flex;gap:6px;justify-content:flex-end;}
+
+@media(max-width:768px){
+  .header,.stats,.toolbar,.content,.view-bar{padding-left:12px;padding-right:12px;}
+  .prod-grid{grid-template-columns:1fr;}
+  .overview{grid-template-columns:repeat(3,1fr);padding:4px 12px 8px;}
+  .stats{flex-wrap:wrap;}
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.prod-card{animation:fadeUp .3s ease both;}
+.prod-card:nth-child(2){animation-delay:.05s;}
+.prod-card:nth-child(3){animation-delay:.1s;}
+</style>
+</head>
+<body>
+
+<!-- Password Gate -->
+<div id="gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#111217;">
+  <div style="text-align:center;padding:40px 32px;background:#1a1a22;border:1px solid #2a2a35;border-radius:12px;width:320px;">
+    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#4e8ef7,#bf5af2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px;">⚡</div>
+    <div style="font-size:16px;font-weight:700;color:#e8e8e8;margin-bottom:4px;">OKD Design Registry</div>
+    <div style="font-size:11px;color:#666;margin-bottom:20px;">Enter access code to continue</div>
+    <input id="pwdInput" type="password" placeholder="Access Code" autocomplete="off"
+      style="width:100%;padding:10px 14px;border-radius:8px;background:#222;border:1px solid #333;color:#e8e8e8;font-size:13px;outline:none;text-align:center;font-family:inherit;letter-spacing:2px;"
+      onkeydown="if(event.key==='Enter')checkPwd()">
+    <button onclick="checkPwd()"
+      style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#4e8ef7,#3b6de0);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Enter</button>
+    <div id="pwdErr" style="margin-top:10px;font-size:10px;color:#ff453a;display:none;">Wrong code</div>
+  </div>
+</div>
+
+<!-- Dashboard (hidden until authenticated) -->
+<div id="app" style="display:none;">
+
+<div class="header">
+  <div class="h-left"><div class="logo">⚡</div><h1>OKD Design Registry <span id="cnt"></span></h1></div>
+  <div class="h-right">
+    <span style="font-size:9px;color:var(--text3)">Synced: 2026-03-19</span>
+    <a class="hb" href="https://okg-block.sg.larksuite.com/base/ZXttbYV7xaSljVs8LhSlUAY4g6S?table=tblV5EThkAC0Incy" target="_blank" style="text-decoration:none">📊 Bitable</a>
+  </div>
+</div>
+<div class="view-bar">
+  <div class="vtab active" onclick="setV('branch',this)">🌿 Branches</div>
+  <div class="vtab" onclick="setV('table',this)">📋 Table</div>
+</div>
+<div class="stats" id="stats"></div>
+<div class="overview" id="overview"></div>
+<div class="toolbar">
+  <div class="search-wrap" id="searchWrap">
+    <input class="search" id="q" placeholder="Search files, modules, owners..." oninput="onSearch()" onfocus="onSearch()" autocomplete="off">
+    <div class="search-dd" id="searchDD"></div>
+  </div>
+  <div id="chips" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+</div>
+<div class="content" id="content"></div>
+
+<script>
+const APP="ZXttbYV7xaSljVs8LhSlUAY4g6S",TBL="tblV5EThkAC0Incy";
+const COL={"Global CEX":"#4e8ef7","Web3":"#bf5af2","OEX & Pay":"#ff9f0a","VD":"#ff453a","DS":"#34c759","CD":"#ffd60a"};
+
+let files=[],vw="branch",flt={status:null};
+
+// ═══ LIVE DATA from Lark Bitable (Design Registry v2) — synced 2026-03-19 ═══
+const BAKED=[
+  // Real records from Bitable
+  {name:"OKX-Trade-Spot-iOS-WIP",url:"https://www.figma.com/design/example1/OKX-Trade-Spot-iOS",product:"Web3",module:"Spot",subProject:"",platform:"iOS",status:"WIP",owner:"Sugar Shi",version:"v3.0"},
+  {name:"OKX-Wallet-Send-Web-Final",url:"https://www.figma.com/design/example2/OKX-Wallet-Send-Web",product:"Global CEX",module:"Send",subProject:"",platform:"Web",status:"Final",owner:"Hailey He",version:"v2.1"},
+  {name:"OKD-Shared-Components-All-Final",url:"https://www.figma.com/design/example3/OKD-Shared-Components",product:"DS",module:"Components",subProject:"",platform:"All",status:"Final",owner:"Rachel Dang",version:"v4.0"},
+  {name:"哈哈哈哈",url:"",product:"Web3",module:"哈哈哈哈",subProject:"sugar test",platform:"iOS, Android, Web, H5",status:"WIP",owner:"APAC- PD - ShiGe",version:"v1.0"},
+
+  // Demo data — replace with real records as team syncs more files
+  {name:"CEX-Spot-ProTrading-v4",url:"#",product:"Global CEX",module:"Spot",subProject:"Pro Trading",platform:"iOS",status:"WIP",owner:"Sugar Shi",version:"v4.0"},
+  {name:"CEX-Spot-ProTrading-v3",url:"#",product:"Global CEX",module:"Spot",subProject:"Pro Trading",platform:"iOS",status:"Archived",owner:"Sugar Shi",version:"v3.0"},
+  {name:"CEX-Spot-LiteMode-v2",url:"#",product:"Global CEX",module:"Spot",subProject:"Lite Mode",platform:"iOS",status:"Review",owner:"Amy C",version:"v2.0"},
+  {name:"CEX-Spot-LiteMode-v1",url:"#",product:"Global CEX",module:"Spot",subProject:"Lite Mode",platform:"iOS",status:"Archived",owner:"Amy C",version:"v1.0"},
+  {name:"CEX-Futures-Perpetual-v2",url:"#",product:"Global CEX",module:"Futures",subProject:"Perpetual",platform:"iOS",status:"Review",owner:"Mike L",version:"v2.1"},
+  {name:"CEX-Futures-Perpetual-v1",url:"#",product:"Global CEX",module:"Futures",subProject:"Perpetual",platform:"iOS",status:"Archived",owner:"Mike L",version:"v1.0"},
+  {name:"CEX-Options-Vanilla-v1",url:"#",product:"Global CEX",module:"Options",subProject:"Vanilla Options",platform:"Web",status:"WIP",owner:"Leo Z",version:"v1.0"},
+  {name:"Web3-Wallet-MultiChain-v5",url:"#",product:"Web3",module:"Wallet",subProject:"Multi-Chain",platform:"iOS",status:"WIP",owner:"Hailey He",version:"v5.0"},
+  {name:"Web3-Wallet-MultiChain-v4",url:"#",product:"Web3",module:"Wallet",subProject:"Multi-Chain",platform:"iOS",status:"Archived",owner:"Hailey He",version:"v4.0"},
+  {name:"Web3-Wallet-Portfolio-v2",url:"#",product:"Web3",module:"Wallet",subProject:"Portfolio",platform:"Web",status:"Final",owner:"Tom K",version:"v2.0"},
+  {name:"Web3-DApp-BrowserShell-v2",url:"#",product:"Web3",module:"DApp Browser",subProject:"Browser Shell",platform:"iOS",status:"Review",owner:"Tom K",version:"v2.0"},
+  {name:"Web3-DApp-BrowserShell-v1",url:"#",product:"Web3",module:"DApp Browser",subProject:"Browser Shell",platform:"iOS",status:"Archived",owner:"Tom K",version:"v1.0"},
+  {name:"OEX-Send-Express-v3",url:"#",product:"OEX & Pay",module:"Send",subProject:"Express Send",platform:"iOS",status:"Final",owner:"Jenny W",version:"v3.0"},
+  {name:"OEX-Send-Express-v2",url:"#",product:"OEX & Pay",module:"Send",subProject:"Express Send",platform:"iOS",status:"Archived",owner:"Jenny W",version:"v2.0"},
+  {name:"OEX-Receive-QR-v2",url:"#",product:"OEX & Pay",module:"Receive",subProject:"QR Receive",platform:"Android",status:"WIP",owner:"Amy C",version:"v2.0"},
+  {name:"VD-Icons-System-v5",url:"#",product:"VD",module:"Icon Set",subProject:"System Icons",platform:"All",status:"Final",owner:"Rachel Dang",version:"v5.0"},
+  {name:"VD-Icons-System-v4",url:"#",product:"VD",module:"Icon Set",subProject:"System Icons",platform:"All",status:"Archived",owner:"Rachel Dang",version:"v4.0"},
+  {name:"VD-BrandKit-DarkMode-v1",url:"#",product:"VD",module:"Brand Kit",subProject:"Dark Mode",platform:"All",status:"WIP",owner:"Rachel Dang",version:"v1.0"},
+  {name:"DS-Comp-Core-v8",url:"#",product:"DS",module:"Components",subProject:"Core Kit",platform:"All",status:"Final",owner:"Rachel Dang",version:"v8.0"},
+  {name:"DS-Comp-Core-v7",url:"#",product:"DS",module:"Components",subProject:"Core Kit",platform:"All",status:"Archived",owner:"Rachel Dang",version:"v7.0"},
+  {name:"DS-Comp-TradingKit-v2",url:"#",product:"DS",module:"Components",subProject:"Trading Kit",platform:"All",status:"WIP",owner:"Sugar Shi",version:"v2.0"},
+  {name:"DS-Tokens-v4",url:"#",product:"DS",module:"Design Tokens",subProject:"Token Library",platform:"All",status:"Final",owner:"Sugar Shi",version:"v4.0"},
+  {name:"CD-Q1-Banner-v2",url:"#",product:"CD",module:"Campaign Q1",subProject:"Banner Set",platform:"Web",status:"Final",owner:"Lily M",version:"v2.0"},
+  {name:"CD-Q1-Banner-v1",url:"#",product:"CD",module:"Campaign Q1",subProject:"Banner Set",platform:"Web",status:"Archived",owner:"Lily M",version:"v1.0"},
+  {name:"CD-Onboarding-Welcome-v3",url:"#",product:"CD",module:"Onboarding",subProject:"Welcome Flow",platform:"iOS",status:"Final",owner:"Tom K",version:"v3.0"},
+  {name:"CD-Onboarding-KYC-v1",url:"#",product:"CD",module:"Onboarding",subProject:"KYC Flow",platform:"iOS",status:"Review",owner:"Amy C",version:"v1.0"},
+];
+
+function esc(s){if(!s)return"";const d=document.createElement("div");d.textContent=s;return d.innerHTML;}
+function vn(v){const m=(v||"").match(/(\d+)\.(\d+)/);return m?parseInt(m[1])*1000+parseInt(m[2]):0;}
+
+function setV(v,el){vw=v;document.querySelectorAll(".vtab").forEach(t=>t.classList.remove("active"));el.classList.add("active");render();}
+function getF(){const q=document.getElementById("q").value.toLowerCase();return files.filter(f=>{if(flt.status&&f.status!==flt.status)return false;if(q){const h=[f.name,f.module,f.product,f.owner,f.platform,f.version,f.subProject||''].join(" ").toLowerCase();if(!h.includes(q))return false;}return true;});}
+function renderStats(){const t=files.length,w=files.filter(f=>f.status==="WIP").length,fn=files.filter(f=>f.status==="Final").length,p=[...new Set(files.map(f=>f.product).filter(Boolean))].length;document.getElementById("stats").innerHTML=`<div class="st"><div class="st-l">Total</div><div class="st-v">${t}</div></div><div class="st"><div class="st-l">WIP</div><div class="st-v">${w}</div></div><div class="st"><div class="st-l">Final</div><div class="st-v">${fn}</div></div><div class="st"><div class="st-l">Products</div><div class="st-v">${p}</div></div>`;document.getElementById("cnt").textContent="· "+t+" files";}
+
+function renderOverview(){
+  const products=[...new Set(files.map(f=>f.product).filter(Boolean))];
+  const sorted=products.map(p=>{
+    const pf=files.filter(f=>f.product===p);
+    return {name:p, total:pf.length,
+      wip:pf.filter(f=>f.status==="WIP").length,
+      review:pf.filter(f=>f.status==="Review").length,
+      final:pf.filter(f=>f.status==="Final").length,
+      modules:[...new Set(pf.map(f=>f.module).filter(Boolean))].length
+    };
+  }).sort((a,b)=>b.total-a.total);
+
+  let html="";
+  sorted.forEach(p=>{
+    const color=COL[p.name]||"#5a5a6e";
+    html+=`<div class="ov-card" onclick="document.getElementById('q').value='${esc(p.name)}';onSearch();">
+      <div class="ov-hd"><span class="dot" style="background:${color}"></span><span class="nm">${esc(p.name)}</span></div>
+      <div class="ov-num">${p.total}<span>files</span></div>
+      <div class="ov-row2">
+        <span><b>${p.modules}</b> mod</span>
+        ${p.wip?`<span><b>${p.wip}</b> wip</span>`:''}
+        ${p.final?`<span><b>${p.final}</b> done</span>`:''}
+      </div>
+    </div>`;
+  });
+  document.getElementById("overview").innerHTML=html;
+}
+function renderChips(){const ss=[...new Set(files.map(f=>f.status).filter(Boolean))];document.getElementById("chips").innerHTML=ss.map(s=>`<button class="chip ${flt.status===s?'on':''}" onclick="toggleF('${s}')">${s}</button>`).join("");}
+function toggleF(s){flt.status=flt.status===s?null:s;render();}
+
+// Build tooltip
+function tip(f){
+  return `<div class="vt"><div class="vt-n">${esc(f.name)}</div><div class="vt-m">${f.subProject?`<span>📂 <b>${esc(f.subProject)}</b></span>`:''}<span>📱 <b>${esc(f.platform)}</b></span><span>👤 <b>${esc(f.owner)}</b></span><span>🔢 <b>${esc(f.version)}</b> · ${f.status}</span></div><div class="vt-h">🔗 Click to open in Figma</div></div>`;
+}
+
+// Version pill HTML
+function pill(f, isLatest){
+  const tag=f.url?'a':'div', href=f.url?` href="${esc(f.url)}" target="_blank"`:'';
+  if(!isLatest){
+    return `<${tag} class="ver-mini"${href}><div class="vd ${f.status}"></div><span class="vv">${esc(f.version)}</span>${tip(f)}</${tag}>`;
+  }
+  return `<${tag} class="ver-latest s-${f.status}"${href}><div class="vd ${f.status}"></div><span class="vv">${esc(f.version)}</span><span class="vs ${f.status}">${f.status}</span>${f.owner?`<span class="vo">👤 ${esc(f.owner)}</span>`:''}${tip(f)}</${tag}>`;
+}
+
+function renderBranch(){
+  const fd=getF();
+  if(!fd.length)return`<div class="empty">🔍 No files match</div>`;
+
+  // Build tree: product → module → subProject → versions[]
+  const tree={};
+  fd.forEach(f=>{
+    const p=f.product||"Other",m=f.module||"General",sp=f.subProject||f.platform||"General";
+    if(!tree[p])tree[p]={};
+    if(!tree[p][m])tree[p][m]={};
+    if(!tree[p][m][sp])tree[p][m][sp]=[];
+    tree[p][m][sp].push(f);
+  });
+  // Sort versions asc
+  Object.values(tree).forEach(ms=>Object.values(ms).forEach(ps=>Object.values(ps).forEach(vs=>vs.sort((a,b)=>vn(a.version)-vn(b.version)))));
+
+  const sorted=Object.entries(tree).sort((a,b)=>{
+    const ca=Object.values(a[1]).flatMap(m=>Object.values(m).flat()).length;
+    const cb=Object.values(b[1]).flatMap(m=>Object.values(m).flat()).length;
+    return cb-ca;
+  });
+
+  let html='<div class="prod-grid">';
+  sorted.forEach(([prod,modules])=>{
+    const color=COL[prod]||"#5a5a6e";
+    const allFiles=Object.values(modules).flatMap(m=>Object.values(m).flat());
+    const modCount=Object.keys(modules).length;
+    const wipCount=allFiles.filter(f=>f.status==="WIP").length;
+
+    html+=`<div class="prod-card"><div class="prod-head">
+      <div class="prod-dot" style="background:${color}"></div>
+      <div class="prod-name">${esc(prod)}</div>
+      <div class="prod-stats"><span><b>${modCount}</b> modules</span><span><b>${allFiles.length}</b> files</span>${wipCount?`<span style="color:var(--orange)"><b>${wipCount}</b> WIP</span>`:''}</div>
+    </div><div class="tree">`;
+
+    const modEntries=Object.entries(modules).sort((a,b)=>{
+      const ca=Object.values(a[1]).flat().length,cb=Object.values(b[1]).flat().length;return cb-ca;
+    });
+
+    modEntries.forEach(([mod,platforms])=>{
+      const platKeys=Object.keys(platforms);
+      const totalInMod=Object.values(platforms).flat().length;
+      const mid='m_'+prod.replace(/\W/g,'')+'_'+mod.replace(/\W/g,'');
+
+      html+=`<div class="mod-node">`;
+      html+=`<div class="mod-label" onclick="toggleMod('${mid}')">
+        <div class="mod-dot" style="background:${color}"></div>
+        <span class="mod-name">${esc(mod)}</span>
+        <span class="mod-expand open" id="exp_${mid}">▶</span>
+        <span class="mod-count">${totalInMod}</span>
+      </div>`;
+
+      html+=`<div class="plat-branches" id="${mid}">`;
+      platKeys.sort().forEach(sp=>{
+        const vers=platforms[sp];
+        html+=`<div class="plat-branch">
+          <span class="plat-tag"><span class="plat-icon">📂</span> ${esc(sp)}</span>
+          <div class="plat-conn"></div>
+          <div class="ver-row">`;
+
+        const MAX_VISIBLE = 3; // show last 2 old + latest
+        if(vers.length > MAX_VISIBLE){
+          const hiddenCount = vers.length - MAX_VISIBLE;
+          const hidden = vers.slice(0, hiddenCount);
+          const visible = vers.slice(hiddenCount);
+          const hid = 'hv_'+Math.random().toString(36).substr(2,6);
+
+          // Collapsed "+N" badge
+          html+=`<div class="ver-item"><div class="ver-more" onclick="toggleHidden('${hid}',this,event)">+${hiddenCount}</div></div>`;
+
+          // Hidden old versions (collapsed by default)
+          html+=`<div class="ver-hidden" id="${hid}">`;
+          hidden.forEach((f,i)=>{
+            html+=`<div class="ver-item">${i>0?'<div class="ver-conn"></div>':''}${pill(f,false)}</div>`;
+          });
+          html+=`</div>`;
+
+          // Visible recent versions
+          visible.forEach((f,i)=>{
+            const isLast = i === visible.length - 1;
+            html+=`<div class="ver-item"><div class="ver-conn"></div>${pill(f,isLast)}</div>`;
+          });
+        } else {
+          vers.forEach((f,i)=>{
+            const isLast=i===vers.length-1;
+            html+=`<div class="ver-item">${i>0?'<div class="ver-conn"></div>':''}${pill(f,isLast)}</div>`;
+          });
+        }
+
+        html+=`</div></div>`;
+      });
+      html+=`</div>`;
+
+      html+=`</div>`;
+    });
+
+    html+=`</div></div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+function toggleMod(id){
+  const el=document.getElementById(id);
+  const exp=document.getElementById('exp_'+id);
+  if(!el)return;
+  if(el.style.maxHeight==='0px'){el.style.maxHeight=el.scrollHeight+'px';if(exp)exp.classList.add('open');}
+  else{el.style.maxHeight='0px';if(exp)exp.classList.remove('open');}
+}
+
+function toggleHidden(id,btn,e){
+  e.stopPropagation();
+  const el=document.getElementById(id);
+  if(!el)return;
+  const showing=el.classList.contains('show');
+  if(showing){
+    el.classList.remove('show');
+    btn.classList.remove('expanded');
+    btn.textContent=btn.dataset.label;
+  } else {
+    el.classList.add('show');
+    btn.classList.add('expanded');
+    if(!btn.dataset.label) btn.dataset.label=btn.textContent;
+    btn.textContent='▾';
+  }
+}
+
+function renderTable(){
+  const fd=getF();
+  if(!fd.length)return`<div class="empty">🔍 No files match</div>`;
+  let h=`<div class="table-wrap"><table><tr><th>File</th><th>Product</th><th>Module</th><th>Sub-project</th><th>Platform</th><th>Status</th><th>Version</th><th>Owner</th><th>Figma</th></tr>`;
+  fd.sort((a,b)=>(a.product+a.module+(a.subProject||'')).localeCompare(b.product+b.module+(b.subProject||''))||vn(b.version)-vn(a.version));
+  fd.forEach(f=>{h+=`<tr><td class="tn">${esc(f.name)}</td><td>${esc(f.product)}</td><td>${esc(f.module)}</td><td>${esc(f.subProject||'')}</td><td>${esc(f.platform)}</td><td>${f.status?`<span class="tb ${f.status}">${f.status}</span>`:'-'}</td><td style="font-family:var(--mono);font-size:10px">${esc(f.version)}</td><td>${esc(f.owner)}</td><td>${f.url?`<a class="tl" href="${esc(f.url)}" target="_blank">Open →</a>`:'-'}</td></tr>`;});
+  h+=`</table></div>`;return h;
+}
+
+function render(){renderStats();renderOverview();renderChips();document.getElementById("content").innerHTML=vw==="branch"?renderBranch():renderTable();closeDD();}
+
+// ═══ FUZZY SEARCH DROPDOWN ═══
+function fuzzyMatch(query, text){
+  if(!query)return false;
+  const q=query.toLowerCase(), t=text.toLowerCase();
+  if(t.includes(q))return true;
+  // fuzzy: all chars in order
+  let qi=0;
+  for(let i=0;i<t.length&&qi<q.length;i++){if(t[i]===q[qi])qi++;}
+  return qi===q.length;
+}
+
+function highlight(text, query){
+  if(!query||!text)return esc(text);
+  const idx=text.toLowerCase().indexOf(query.toLowerCase());
+  if(idx===-1)return esc(text);
+  return esc(text.slice(0,idx))+'<mark>'+esc(text.slice(idx,idx+query.length))+'</mark>'+esc(text.slice(idx+query.length));
+}
+
+function onSearch(){
+  const q=document.getElementById("q").value.trim();
+  const dd=document.getElementById("searchDD");
+
+  if(!q){closeDD();render();return;}
+
+  // Fuzzy match across all fields
+  const matches=files.filter(f=>{
+    const fields=[f.name,f.module,f.product,f.owner,f.platform,f.version,f.subProject||''];
+    return fields.some(field=>fuzzyMatch(q,field));
+  }).slice(0,12); // max 12 results
+
+  if(matches.length===0){
+    dd.innerHTML=`<div class="sdd-empty">🔍 No results for "${esc(q)}"</div>`;
+    dd.classList.add("show");
+    renderContent();
+    return;
+  }
+
+  let html=`<div class="sdd-header"><span>${matches.length} result${matches.length>1?'s':''}</span><span>ESC to close</span></div>`;
+
+  matches.forEach(f=>{
+    const color=COL[f.product]||"#5a5a6e";
+    const tag=f.url?'a':'div';
+    const href=f.url?` href="${esc(f.url)}" target="_blank"`:'';
+    html+=`<${tag} class="sdd-item"${href}>
+      <div class="sdd-dot" style="background:${color}"></div>
+      <div class="sdd-info">
+        <div class="sdd-name">${highlight(f.name,q)}</div>
+        <div class="sdd-meta">
+          ${f.product?`<b>${highlight(f.product,q)}</b> · `:''}
+          ${f.module?`${highlight(f.module,q)}`:''}
+          ${f.subProject?` · ${highlight(f.subProject,q)}`:''}
+          ${f.owner?` · 👤 ${highlight(f.owner,q)}`:''}
+        </div>
+      </div>
+      ${f.status?`<span class="sdd-badge ${f.status}">${f.status}</span>`:''}
+      <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">${esc(f.version)}</span>
+    </${tag}>`;
+  });
+
+  const totalMatches=files.filter(f=>{
+    const fields=[f.name,f.module,f.product,f.owner,f.platform,f.version,f.subProject||''];
+    return fields.some(field=>fuzzyMatch(q,field));
+  }).length;
+
+  if(totalMatches>12){
+    html+=`<div class="sdd-footer" onclick="closeDD();renderContent();">Show all ${totalMatches} results in view ↓</div>`;
+  }
+
+  dd.innerHTML=html;
+  dd.classList.add("show");
+
+  // Also filter the main view
+  renderContent();
+}
+
+function renderContent(){
+  document.getElementById("content").innerHTML=vw==="branch"?renderBranch():renderTable();
+}
+
+function closeDD(){
+  document.getElementById("searchDD").classList.remove("show");
+}
+
+// Close dropdown on outside click
+document.addEventListener("click",function(e){
+  if(!document.getElementById("searchWrap").contains(e.target))closeDD();
+});
+// Close on ESC
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape")closeDD();
+});
+
+function showModal(){document.getElementById("tkI").value=tk;document.getElementById("mBg").classList.add("show");}
+function hideModal(){document.getElementById("mBg").classList.remove("show");}
+function saveTk(){tk=document.getElementById("tkI").value.trim();localStorage.setItem("okd_tk",tk);hideModal();doRefresh();}
+
+files=BAKED;render();if(tk)doRefresh();
+</script>
+
+</div><!-- end #app -->
+
+<script>
+// ═══ PASSWORD GATE ═══
+// To change the password: update the hash below.
+// Generate a new hash: open browser console, run: 
+//   btoa('yourpassword')
+// Then replace the value of HASH below.
+const HASH = "b2tkMjAyNg=="; // base64 of "okd2026" — change this to your team password
+
+// Check if already authenticated this session
+if (sessionStorage.getItem("okd_auth") === "1") {
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}
+
+function checkPwd() {
+  const input = document.getElementById("pwdInput").value;
+  if (btoa(input) === HASH) {
+    sessionStorage.setItem("okd_auth", "1");
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  } else {
+    document.getElementById("pwdErr").style.display = "block";
+    document.getElementById("pwdInput").value = "";
+    document.getElementById("pwdInput").style.borderColor = "#ff453a";
+    setTimeout(() => {
+      document.getElementById("pwdErr").style.display = "none";
+      document.getElementById("pwdInput").style.borderColor = "#333";
+    }, 2000);
+  }
+}
+</script>
+</body>
+</html>
